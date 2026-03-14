@@ -33,23 +33,33 @@ export default function StudentPage() {
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
 
-  const handleBooking = async () => {
+const handleBooking = async () => {
     if (!settings) return alert("연결 중...");
+    
+    // 시간 체크
     const now = new Date().getTime();
     const openTime = new Date(settings.open_time).getTime();
-
     if (now < openTime) {
       return alert(`아직 예약 시간이 아닙니다!\n오픈: ${new Date(settings.open_time).toLocaleString()}`);
     }
 
     if (bookings.length >= settings.max_capacity) return alert("정원 초과");
     if (!selectedSeat) return alert("좌석 선택 필수");
+    if (!formData.name) return alert("이름을 입력해주세요.");
+    if (!formData.gender) return alert("성별을 선택해주세요.");
     
-    const isDup = bookings.some(b => b.name === formData.name && b.school === formData.school);
-    if (isDup) return alert("이미 예약된 정보입니다.");
+    // 중복 체크 로직 수정: 이름, 학교, 학년, 선생님이 모두 같아야 중복으로 처리
+    const isDup = bookings.some(b => 
+      b.name === formData.name && 
+      b.school === formData.school && 
+      b.grade === formData.grade && 
+      b.teacher === formData.teacher
+    );
+
+    if (isDup) return alert("이미 동일한 정보로 예약된 내역이 있습니다.");
 
     const { error } = await supabase.from('bookings').insert([{ ...formData, seat_number: selectedSeat }]);
-    if (error) alert("선점된 좌석이거나 오류입니다.");
+    if (error) alert("이미 선점된 좌석이거나 오류가 발생했습니다.");
     else {
       alert("예약 성공!");
       setSelectedSeat(null);
