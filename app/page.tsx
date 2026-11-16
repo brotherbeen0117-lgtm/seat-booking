@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { seatLayout } from '@/lib/seat-layout';
 import { supabase } from '@/lib/supabase';
 
 // 학교 목록에 가재울고 추가됨
@@ -12,6 +13,10 @@ type SeatLookup = {
   gender: '여' | '남';
   occupied: number[];
 };
+
+function formatSeatTime(value: string) {
+  return new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+}
 
 const SEAT_MESSAGES: Record<string, string> = {
   no_match: '입력한 정보와 일치하는 예약이 없습니다. 처음 예약할 때 입력한 내용을 확인해주세요.',
@@ -104,6 +109,14 @@ export default function StudentPage() {
         return;
       }
 
+      if (data.status === 'not_open' || data.status === 'closed') {
+        setMyBooking(null);
+        setSelectedSeat(null);
+        const label = data.status === 'not_open' ? '시작' : '마감';
+        setSeatMessage(`좌석 확인·변경 ${label} 시간은 ${formatSeatTime(data.limit_time)} (한국 시간)입니다.`);
+        return;
+      }
+
       setSelectedSeat(null);
       setSeatMessage(SEAT_MESSAGES[data.status] ?? '좌석 정보를 확인하지 못했습니다.');
       if (data.status === 'seat_taken' || data.status === 'seat_changed') {
@@ -152,24 +165,6 @@ export default function StudentPage() {
       setSelectedSeat(null);
     }
   };
-
-  const seatLayout = useMemo(() => [
-    {
-      columnId: "left",
-      upper: [[null, 8], [1, 9], [2, 10], [3, 11], [4, 12]],
-      lower: [[5, 13], [6, 14], [7, 15]]
-    },
-    {
-      columnId: "center",
-      upper: [[16, 24], [17, 25], [18, 26], [19, 27], [20, 28]],
-      lower: [[21, 29], [22, 30], [23, null]]
-    },
-    {
-      columnId: "right",
-      upper: [[31, 40], [32, 41], [33, 42], [34, 43], [35, 44]],
-      lower: [[36, 45], [37, 46], [38, 47], [39, 48]]
-    }
-  ], []);
 
   const renderSeatCell = (num: number | null, index: number) => {
     if (num === null) return <div key={`empty-${index}`} className="h-14 border border-gray-100 bg-gray-50/30"></div>;
